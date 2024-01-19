@@ -1,84 +1,87 @@
-class Quiz:
-    def __init__(self):
-        self.questions = [
-            {
-                "question": "What is the capital of France?",
-                "options": ["Berlin", "Paris", "Madrid", "Rome"],
-                "answer": "Paris"
-            },
-            {
-                "question": "Which planet is known as the Red Planet?",
-                "options": ["Mars", "Jupiter", "Venus", "Saturn"],
-                "answer": "Mars"
-            },
-            {
-                "question": "Who wrote 'Romeo and Juliet'?",
-                "options": ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-                "answer": "William Shakespeare"
-            },
-            {
-                "question": "What is the largest mammal?",
-                "options": ["Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
-                "answer": "Blue Whale"
-            },
-            {
-                "question": "Which country is known as the Land of the Rising Sun?",
-                "options": ["China", "Japan", "South Korea", "Thailand"],
-                "answer": "Japan"
-            },
-            {
-                "question": "What is the currency of India?",
-                "options": ["Dollar", "Pound", "Rupee", "Yen"],
-                "answer": "Rupee"
-            },
-            {
-                "question": "Who painted the Mona Lisa?",
-                "options": ["Vincent van Gogh", "Leonardo da Vinci", "Pablo Picasso", "Claude Monet"],
-                "answer": "Leonardo da Vinci"
-            },
-            {
-                "question": "What is the largest ocean on Earth?",
-                "options": ["Atlantic Ocean", "Indian Ocean", "Southern Ocean", "Pacific Ocean"],
-                "answer": "Pacific Ocean"
-            },
-            {
-                "question": "Which element has the chemical symbol 'O'?",
-                "options": ["Oxygen", "Osmium", "Oganesson", "Osmium"],
-                "answer": "Oxygen"
-            },
-            {
-                "question": "Who is the current President of the United States?",
-                "options": ["Barack Obama", "Donald Trump", "Joe Biden", "George Bush"],
-                "answer": "Joe Biden"
-            }
-        ]
-        self.score = 0
+# main.py
+from flask import Flask, render_template, request, redirect, url_for
 
-    def display_question(self, question_num):
-        question = self.questions[question_num]["question"]
-        options = self.questions[question_num]["options"]
-        print(f"{question_num + 1}. {question}")
-        for i, option in enumerate(options, start=1):
-            print(f"   {i}. {option}")
+app = Flask(__name__)
 
-    def check_answer(self, question_num, user_answer):
-        correct_answer = self.questions[question_num]["answer"]
-        if user_answer == correct_answer:
-            print("Correct!\n")
-            self.score += 1
-        else:
-            print(f"Wrong! The correct answer is: {correct_answer}\n")
+questions = [
+    {
+        'question': 'What is the capital of France?',
+        'options': ['Berlin', 'Paris', 'London', 'Rome'],
+        'correct_answer': 'Paris'
+    },
+    {
+        'question': 'Which planet is known as the Red Planet?',
+        'options': ['Mars', 'Jupiter', 'Venus', 'Saturn'],
+        'correct_answer': 'Mars'
+    },
+    {
+        'question': 'Who wrote "Romeo and Juliet"?',
+        'options': ['Charles Dickens', 'William Shakespeare', 'Jane Austen', 'Mark Twain'],
+        'correct_answer': 'William Shakespeare'
+    }
+]
 
-    def start_quiz(self):
-        print("Welcome to the General Knowledge Quiz!")
-        for i in range(len(self.questions)):
-            self.display_question(i)
-            user_answer = input("Your answer (enter the option number): ").strip()
-            self.check_answer(i, user_answer)
+@app.route('/')
+def index():
+    return render_template('quiz.html', questions=questions)
 
-        print(f"Quiz completed! Your score: {self.score}/{len(self.questions)}")
+@app.route('/submit', methods=['POST'])
+def submit():
+    score = 0
 
+    for i, question in enumerate(questions):
+        user_answer = request.form.get(f'q{i+1}')
 
-if __name__ == "__main__":
-    quiz = Quiz()
+        if user_answer and user_answer == question['correct_answer']:
+            score += 1
+
+    return render_template('result.html', score=score, total=len(questions))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
     quiz.start_quiz()
+
+# html
+<!-- templates/quiz.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General Knowledge Quiz</title>
+</head>
+<body>
+    <h1>General Knowledge Quiz</h1>
+    <form method="post" action="{{ url_for('submit') }}">
+        {% for i, question in enumerate(questions) %}
+            <p>{{ question['question'] }}</p>
+            {% for option in question['options'] %}
+                <label>
+                    <input type="radio" name="q{{ i+1 }}" value="{{ option }}">
+                    {{ option }}
+                </label><br>
+            {% endfor %}
+            <br>
+        {% endfor %}
+        <button type="submit">Submit Answers</button>
+    </form>
+</body>
+</html>
+
+# html
+<!-- templates/result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Result</title>
+</head>
+<body>
+    <h1>Your Quiz Result</h1>
+    <p>You scored {{ score }} out of {{ total }}.</p>
+</body>
+</html>
+
+# html
