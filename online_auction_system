@@ -1,77 +1,79 @@
-class AuctionItem:
-    def __init__(self, item_name):
-        self.item_name = item_name
-        self.current_bid = 0.0
-        self.current_bidder = "No bidder yet"
+# main.py
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 
-    def get_item_name(self):
-        return self.item_name
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///auction.db'
+db = SQLAlchemy(app)
 
-    def get_current_bid(self):
-        return self.current_bid
+class Item(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    current_bid = db.Column(db.Float, default=0.0)
 
-    def get_current_bidder(self):
-        return self.current_bidder
+# Create the database tables
+db.create_all()
 
-    def place_bid(self, bidder_name, bid_amount):
-        if bid_amount > self.current_bid:
-            self.current_bid = bid_amount
-            self.current_bidder = bidder_name
-            print(f"Bid placed successfully on {self.item_name} by {bidder_name} - ${bid_amount}")
-        else:
-            print(f"Bid amount must be higher than the current bid on {self.item_name}")
+@app.route('/')
+def index():
+    items = Item.query.all()
+    return render_template('index.html', items=items)
 
+@app.route('/item/<int:item_id>', methods=['GET', 'POST'])
+def item(item_id):
+    item = Item.query.get(item_id)
 
-class AuctionSystem:
-    def __init__(self):
-        self.auction_items = {}
+    if request.method == 'POST':
+        bid_amount = float(request.form['bid'])
 
-    def add_item(self, item_name):
-        self.auction_items[item_name] = AuctionItem(item_name)
+        if bid_amount > item.current_bid:
+            item.current_bid = bid_amount
+            db.session.commit()
 
-    def display_items(self):
-        print("Auction Items:")
-        for item in self.auction_items.values():
-            print(f"{item.get_item_name()} - Current Bid: ${item.get_current_bid()} "
-                  f"(Bidder: {item.get_current_bidder()})")
+    return render_template('item.html', item=item)
 
-    def place_bid(self, item_name, bidder_name, bid_amount):
-        item = self.auction_items.get(item_name)
-        if item:
-            item.place_bid(bidder_name, bid_amount)
-        else:
-            print(f"{item_name} not found in the auction.")
+if __name__ == '__main__':
+    app.run(debug=True)
 
 
-def main():
-    auction_system = AuctionSystem()
+# html
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Auction</title>
+</head>
+<body>
+    <h1>Items for Auction</h1>
+    <ul>
+        {% for item in items %}
+            <li><a href="{{ url_for('item', item_id=item.id) }}">{{ item.name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
 
-    while True:
-        print("1. Add Auction Item")
-        print("2. Place Bid")
-        print("3. Display Auction Items")
-        print("4. Exit")
-        choice = int(input("Enter your choice: "))
-
-        if choice == 1:
-            item_name = input("Enter item name: ")
-            auction_system.add_item(item_name)
-            print(f"Auction item added: {item_name}\n")
-        elif choice == 2:
-            bid_item_name = input("Enter item name to place bid: ")
-            bidder_name = input("Enter bidder name: ")
-            bid_amount = float(input("Enter bid amount: "))
-            auction_system.place_bid(bid_item_name, bidder_name, bid_amount)
-            print()
-        elif choice == 3:
-            auction_system.display_items()
-            print()
-        elif choice == 4:
-            print("Exiting the Online Auction System. Goodbye!")
-            break
-        else:
-            print("Invalid choice. Please enter a valid option.\n")
-
-
-if __name__ == "__main__":
-    main()
+# html
+<!-- templates/item.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ item.name }} - Online Auction</title>
+</head>
+<body>
+    <h1>{{ item.name }}</h1>
+    <p>{{ item.description }}</p>
+    <p>Current Bid: ${{ item.current_bid }}</p>
+    
+    <form method="post" action="">
+        <label for="bid">Place Bid:</label>
+        <input type="number" step="0.01" name="bid" required>
+        <button type="submit">Submit Bid</button>
+    </form>
+</body>
+</html>
